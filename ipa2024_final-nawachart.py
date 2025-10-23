@@ -11,8 +11,8 @@ import json
 import time
 import os
 import restconf_final as restconf
-# import netmiko_final as netmiko
-# import ansible_final as ansible
+import netmiko_final as netmiko
+import ansible_final as ansible
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 from dotenv import load_dotenv
 
@@ -93,9 +93,9 @@ while True:
         elif command == "status":
             responseMessage = restconf.status()             #------------------
         elif command == "gigabit_status":
-            responseMessage = restconf.gigabit_status()     #------------------
+            responseMessage = netmiko.gigabit_status()     #------------------
         elif command == "showrun":
-            responseMessage = restconf.showrun()            #------------------
+            responseMessage = ansible.showrun()            #------------------
         else:
             responseMessage = "Error: No command or unknown command"
         
@@ -113,14 +113,15 @@ while True:
         # Read Send a Message with Attachments Local File Attachments
         # https://developer.webex.com/docs/basics for more detail
 
-        if command == "showrun" and responseMessage == 'ok':
-            filename = "./showrun.txt"  #----------------------------------------------------------------------
-            fileobject = open(filename, "rb")
+        if command == "showrun" and responseMessage.get("msg") == 'ok':
+            local_filepath = "backups/show_run_66070100_IPA-Router2.txt"  #----------------------------------------------------------------------
+            upload_filename = "show_run_66070100_IPA-Router2.txt"
+            fileobject = open(local_filepath, "rb")
             filetype = "text/plain"    #----------------------------------------------------------------------
             postData = {
                 "roomId": roomIdToGetMessages,
                 "text": "show running config",
-                "files": (filename, fileobject, filetype),          #----------------------------------------------------------------------
+                "files": (upload_filename, fileobject, filetype),          #----------------------------------------------------------------------
             }
             postData = MultipartEncoder(postData)                   #----------------------------------------------------------------------
             HTTPHeaders = {
@@ -129,7 +130,8 @@ while True:
             }
         # other commands only send text, or no attached file.
         else:
-            postData = {"roomId": roomIdToGetMessages, "text": responseMessage} #----------------------------------------------------------------------
+            msg_to_send = str(responseMessage)
+            postData = {"roomId": roomIdToGetMessages, "text": msg_to_send} #----------------------------------------------------------------------
             postData = json.dumps(postData)
 
             # the Webex Teams HTTP headers, including the Authoriztion and Content-Type
